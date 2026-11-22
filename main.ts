@@ -46,6 +46,21 @@ if (isPng) {
   if (!sawIend) throw new Error('entry.png has no IEND chunk');
 }
 
+if (isJpeg) {
+  // walk the segments to the frame header, which holds the picture's own size
+  let at = 2;
+  while (at + 9 < bytes.length) {
+    if (bytes[at] !== 0xff) throw new Error('entry.png is a broken JPEG at ' + at);
+    const marker = bytes[at + 1];
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      height = bytes.readUInt16BE(at + 5);
+      width = bytes.readUInt16BE(at + 7);
+      break;
+    }
+    at += 2 + bytes.readUInt16BE(at + 2);
+  }
+}
+
 if (width > MAX_SIDE || height > MAX_SIDE) {
   throw new Error('entry.png is ' + width + ' by ' + height + ', over 1024 by 1024');
 }
